@@ -7,7 +7,7 @@
 # 1. AJUSTES DE RUTAS CRÍTICAS (MODIFICAR)
 # -------------------------------------------------------------
 # **REEMPLAZA TU_USUARIO_REAL** con tu nombre de usuario en DigitalOcean
-PROJECT_DIR="/home/TU_USUARIO_REAL/ETL_Project" 
+PROJECT_DIR="/home/ETL_PROJECT_SPARK"  # Ruta absoluta al directorio raíz del proyecto
 
 # -------------------------------------------------------------
 # 2. CONFIGURACIÓN DE ENTORNO VIRTUAL
