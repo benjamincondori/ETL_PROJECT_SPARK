@@ -3,3 +3,4 @@ pandas
 shapely
 psycopg2-binary 
 sqlalchemy
+python-dotenv
