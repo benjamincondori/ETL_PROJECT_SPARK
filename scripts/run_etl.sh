@@ -6,8 +6,8 @@
 # -------------------------------------------------------------
 # 1. AJUSTES DE RUTAS CRÍTICAS (MODIFICAR)
 # -------------------------------------------------------------
-# **REEMPLAZA TU_USUARIO_REAL** con tu nombre de usuario en DigitalOcean
-PROJECT_DIR="/home/ETL_PROJECT_SPARK"  # Ruta absoluta al directorio raíz del proyecto
+USUARIO_LINUX=$(whoami) # Obtiene el usuario actual (ej: root o benjamin)
+PROJECT_DIR="/home/$USUARIO_LINUX/ETL_PROJECT_SPARK" 
 
 # -------------------------------------------------------------
 # 2. CONFIGURACIÓN DE ENTORNO VIRTUAL
