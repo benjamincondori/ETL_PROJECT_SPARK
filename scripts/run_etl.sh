@@ -6,8 +6,7 @@
 # -------------------------------------------------------------
 # 1. AJUSTES DE RUTAS CRÍTICAS (MODIFICAR)
 # -------------------------------------------------------------
-USUARIO_LINUX=$(whoami) # Obtiene el usuario actual (ej: root o benjamin)
-PROJECT_DIR="/home/$USUARIO_LINUX/ETL_PROJECT_SPARK" 
+PROJECT_DIR="/home/benjamin/ETL_PROJECT_SPARK" 
 
 # -------------------------------------------------------------
 # 2. CONFIGURACIÓN DE ENTORNO VIRTUAL
