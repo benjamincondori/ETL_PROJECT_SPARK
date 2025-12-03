@@ -27,7 +27,7 @@ DB_PORT = os.environ.get("DB_PORT", "5432")
 DB_NAME = os.environ.get("DB_NAME", "db_locations")
 DB_USER = os.environ.get("DB_USER", "postgres")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "benjamin")
-TARGET_TABLE = os.environ.get("TARGET_TABLE", "db_locations")
+TARGET_TABLE = os.environ.get("TARGET_TABLE", "locations")
 
 # --- RUTAS DE ARCHIVOS Y DRIVERS (Asumiendo que se ejecuta desde la raíz del proyecto) ---
 BASE_DIR = os.getcwd() 
