@@ -3,7 +3,10 @@ import os
 import logging
 
 # Añadir la ruta del proyecto para importar módulos (necesario en algunos entornos)
-sys.path.append(os.getcwd())
+# sys.path.append(os.getcwd())
+
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, PROJECT_DIR)
 
 # Importar módulos ETL
 from core.spark_session import create_spark_session

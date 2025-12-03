@@ -45,7 +45,8 @@ TARGET_TABLE = os.getenv("TARGET_TABLE", "locations")
 # -------------------------
 # Rutas
 # -------------------------
-BASE_DIR = os.getcwd()
+# BASE_DIR = os.getcwd()
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CSV_FILE_PATH = os.path.join(BASE_DIR, "data", "locations_rows.csv")
 GEOJSON_FILE_PATH = os.path.join(BASE_DIR, "data", "limites_oficiales_scz.geojson")
 JDBC_DRIVER_PATH = os.path.join(BASE_DIR, "drivers", "postgresql-42.7.8.jar")
