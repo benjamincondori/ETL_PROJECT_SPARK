@@ -4,10 +4,10 @@ from shapely.geometry import Point, shape
 from pyspark.sql.functions import udf, col, lit
 from pyspark.sql.types import StringType
 
-from core.config import (
-    ALTITUD_BAJA_MAX, ALTITUD_MEDIA_MAX, COBERTURA_MEDIA_MIN_DBM, 
-    COBERTURA_ALTA_MIN_DBM, GEOJSON_FILE_PATH
-)
+# from core.config import (
+#     ALTITUD_BAJA_MAX, ALTITUD_MEDIA_MAX, COBERTURA_MEDIA_MIN_DBM, 
+#     COBERTURA_ALTA_MIN_DBM, GEOJSON_FILE_PATH
+# )
 
 
 # -------------------------------------------------------------
@@ -61,6 +61,8 @@ def asignar_zona_func(lat, lon, zonas_broadcast):
     return "FUERA_ZONA"
 
 def discretizar_altitud_func(altitud):
+    from core.config import ALTITUD_BAJA_MAX, ALTITUD_MEDIA_MAX
+    
     if altitud is None:
         return "Desconocida"
     if altitud <= ALTITUD_BAJA_MAX: 
@@ -72,6 +74,8 @@ def discretizar_altitud_func(altitud):
 
 
 def discretizar_cobertura_func(signal):
+    from core.config import COBERTURA_MEDIA_MIN_DBM, COBERTURA_ALTA_MIN_DBM
+    
     if signal is None:
         return "Desconocida"
     if signal >= COBERTURA_ALTA_MIN_DBM: 
@@ -92,6 +96,7 @@ def transform_data(df_spark, spark_session):
     """
     Aplica todas las transformaciones UDFs al DataFrame de Spark.
     """
+    from core.config import GEOJSON_FILE_PATH
     
     # 1. Cargar Zonas (Esto debe ocurrir en el Driver y luego hacerse Broadcast)
     zonas = cargar_zonas_desde_geojson(GEOJSON_FILE_PATH)
