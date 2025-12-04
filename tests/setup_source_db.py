@@ -4,7 +4,9 @@ import os
 import sys
 
 # Agrega la ruta del proyecto al path para importar core.config
-sys.path.append(os.getcwd())
+# sys.path.append(os.getcwd())
+PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_DIR)
 
 # Importar configuraciones de la DB local que usamos como origen de prueba
 try:
