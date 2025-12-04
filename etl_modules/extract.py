@@ -1,17 +1,16 @@
 from pyspark.sql.types import (
     StructType, StructField, IntegerType, StringType, DoubleType, TimestampType
 )
-# from core.config import (
-#     SUPABASE_HOST, SUPABASE_PORT, SUPABASE_DB, SUPABASE_USER, 
-#     SUPABASE_PASSWORD, SUPABASE_TABLE, SUPABASE_SCHEMA
-# )
+from pyspark.sql import SparkSession
+from datetime import datetime
+import pandas as pd
 
 from core.config import (
     SOURCE_HOST, SOURCE_PORT, SOURCE_DB, SOURCE_USER, SOURCE_PASSWORD, 
     SOURCE_TABLE, SOURCE_SCHEMA
 )
-from datetime import datetime
-
+from core.config import SUPABASE_URL, SUPABASE_KEY
+from supabase import create_client
 
 # Definición del esquema de la DB Origen
 DB_SCHEMA = StructType([
@@ -29,17 +28,18 @@ DB_SCHEMA = StructType([
     StructField("device_id", StringType(), True),
 ])
 
-def extract_data(spark, last_run_timestamp=None):
-    """Extrae datos de la tabla de origen (Postgres local o Supabase)"""
-    
-    # jdbc_url = f"jdbc:postgresql://{SUPABASE_HOST}:{SUPABASE_PORT}/{SUPABASE_DB}"
+
+# ============================================================
+#   1) EXTRACCIÓN DESDE POSTGRES 
+# ============================================================
+def extract_data_postgres(spark: SparkSession, last_run_timestamp=None):
+    """Extrae datos de la tabla de origen vía JDBC (Postgres)."""
     jdbc_url = f"jdbc:postgresql://{SOURCE_HOST}:{SOURCE_PORT}/{SOURCE_DB}"
     
     connection_properties = {
         "user": SOURCE_USER,
         "password": SOURCE_PASSWORD,
         "driver": "org.postgresql.Driver",
-        # "sslmode": "require" # Crucial para Supabase
     }
 
     # Consulta base para seleccionar todos los datos
@@ -67,3 +67,59 @@ def extract_data(spark, last_run_timestamp=None):
         .load()
     )
     return df_spark
+
+# ============================================================
+#   2) EXTRACCIÓN DESDE SUPABASE (API REST)
+# ============================================================
+def extract_data_supabase(spark: SparkSession, last_run_timestamp=None, table_name="locations"):
+    """Extrae datos desde Supabase usando la API (URL + KEY)."""
+
+    # Crear cliente Supabase
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    # Filtro incremental
+    if last_run_timestamp:
+        ts_str = last_run_timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')
+        print(f"-> [Supabase] Filtro incremental: timestamp > '{ts_str}'")
+
+        response = (
+            supabase.table(table_name)
+            .select("*")
+            .gt("timestamp", ts_str)
+            .execute()
+        )
+    else:
+        print("-> [Supabase] Carga inicial completa.")
+        response = supabase.table(table_name).select("*").execute()
+
+    data = response.data
+
+    if not data:
+        print("⚠ [Supabase] No se encontraron registros.")
+        # DF vacío con esquema correcto
+        return spark.createDataFrame([], schema=DB_SCHEMA)
+
+    # Supabase → pandas
+    pdf = pd.DataFrame(data)
+
+    # pandas → Spark con esquema consistente
+    df_spark = spark.createDataFrame(pdf, schema=DB_SCHEMA)
+
+    print(f"✔ [Supabase] Filas extraídas: {df_spark.count()}")
+    return df_spark
+
+
+# ============================================================
+#   3) FUNCIÓN PRINCIPAL QUE USA TU ETL
+# ============================================================
+def extract_data(spark: SparkSession, last_run_timestamp=None, origin="supabase"):
+    """
+    origin="supabase" -> leer desde Supabase (recomendado)
+    origin="postgres" -> leer desde Postgres (origen anterior)
+    """
+    if origin == "supabase":
+        return extract_data_supabase(spark, last_run_timestamp)
+    elif origin == "postgres":
+        return extract_data_postgres(spark, last_run_timestamp)
+    else:
+        raise ValueError("Origen inválido. Use: 'supabase' o 'postgres'.")

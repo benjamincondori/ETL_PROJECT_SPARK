@@ -34,7 +34,8 @@ def run_full_etl():
         logger.info(f"Última marca de tiempo cargada en destino: {last_ts}")
         
         # 3. Extract: Leer de la DB Origen con filtro incremental
-        df_raw = extract_data(spark, last_ts)
+        # df_raw = extract_data(spark, last_ts)
+        df_raw = extract_data(spark, last_ts, origin="supabase")
         logger.info(f"Extracción completa. Filas nuevas leídas: {df_raw.count()}")
         
         # Validación: Si no hay filas nuevas, detener el proceso
