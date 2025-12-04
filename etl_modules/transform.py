@@ -119,11 +119,34 @@ def discretizar_bateria_func(bateria):
         return "Media"
     else: # 71-100%
         return "Alta"
+    
+
+def discretizar_compania_func(operator):
+    """
+    Normaliza y clasifica el operador en ENTEL, TIGO, VIVA, OTRO o SIN_SEÑAL.
+    """
+    if operator is None:
+        return "Desconocida"
+
+    op = operator.strip().upper()
+
+    # Operadores principales
+    if "ENTEL" in op:
+        return "ENTEL"
+    if "TIGO" in op:
+        return "TIGO"
+    if "VIVA" in op or "MOVIL GSM" in op:
+        return "VIVA"
+
+    # Todo lo demás → OTRO
+    return "OTRO"
+
 
 discretizar_altitud_spark = udf(discretizar_altitud_func, StringType())
 discretizar_cobertura_spark = udf(discretizar_cobertura_func, StringType())
 discretizar_velocidad_spark = udf(discretizar_velocidad_func, StringType())
 discretizar_bateria_spark = udf(discretizar_bateria_func, StringType())
+discretizar_compania_spark = udf(discretizar_compania_func, StringType())
 
 
 # -------------------------------------------------------------
@@ -161,6 +184,9 @@ def transform_data(df_spark, spark_session):
     ).withColumn(
         "bateria_categoria",
         discretizar_bateria_spark(col("battery"))
+    ).withColumn(
+        "compania",
+        discretizar_compania_spark(col("sim_operator"))
     )
     
     # 4. Seleccionar y renombrar
@@ -188,7 +214,7 @@ def transform_data(df_spark, spark_session):
         "bateria_categoria",
         
         # Datos del Operador
-        col("sim_operator").alias("compania"),
+        "compania",
         
         # Marca de Tiempo
         col("timestamp").alias("fecha_hora")
