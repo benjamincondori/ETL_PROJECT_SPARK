@@ -1,76 +1,62 @@
 #!/bin/bash
 
-# Este script se encarga de activar el entorno virtual y ejecutar la aplicación Spark.
-# Es el script que se llamará desde CRON.
+# Script automatizado para ejecutar ETL incremental con PySpark
+# Diseñado para ser llamado desde CRON
 
 # -------------------------------------------------------------
-# 1. AJUSTES DE RUTAS CRÍTICAS (MODIFICAR)
+# 1. CONFIGURACIÓN DE RUTAS
 # -------------------------------------------------------------
-PROJECT_DIR="/home/benjamin/ETL_PROJECT_SPARK" 
+PROJECT_DIR="/home/benjamin/ETL_PROJECT_SPARK"
+LOG_FILE="/home/benjamin/etl_log.txt"
+
+# Timestamp de inicio
+echo "=================================================="
+echo "🕐 ETL iniciado: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "=================================================="
 
 # -------------------------------------------------------------
-# 2. CONFIGURACIÓN DE ENTORNO VIRTUAL
+# 2. ACTIVAR ENTORNO VIRTUAL
 # -------------------------------------------------------------
 VENV_ACTIVATE_SCRIPT="$PROJECT_DIR/.venv/bin/activate"
 
-# Verificar si el script de activación existe
 if [ ! -f "$VENV_ACTIVATE_SCRIPT" ]; then
-    echo "ERROR: El entorno virtual no se encontró en $VENV_ACTIVATE_SCRIPT"
+    echo "❌ ERROR: Entorno virtual no encontrado en $VENV_ACTIVATE_SCRIPT"
     exit 1
 fi
 
-# Activar el entorno virtual
 source "$VENV_ACTIVATE_SCRIPT"
-echo "Entorno virtual activado."
+echo "✅ Entorno virtual activado"
 
 # -------------------------------------------------------------
-# 2.5 EMPAQUETAR MÓDULOS PYTHON
+# 3. CAMBIAR AL DIRECTORIO DEL PROYECTO
 # -------------------------------------------------------------
-cd "$PROJECT_DIR" || exit 1
-
-echo "Empaquetando módulos Python..."
-
-# Eliminar zip anterior si existe
-rm -f modules.zip
-
-# Crear nuevo zip con los módulos
-zip -q -r modules.zip etl_modules/ core/ -x "*.pyc" -x "*__pycache__*" -x "*.git*"
-
-# Verificar que se creó correctamente
-if [ ! -f "modules.zip" ]; then
-    echo "ERROR: No se pudo crear modules.zip"
+cd "$PROJECT_DIR" || {
+    echo "❌ ERROR: No se pudo acceder al directorio $PROJECT_DIR"
     exit 1
-fi
-
-echo "✓ Módulos empaquetados: $(du -h modules.zip | cut -f1)"
+}
 
 # -------------------------------------------------------------
-# 3. EJECUCIÓN DE PYSPARK (USANDO SPARK-SUBMIT)
+# 4. EJECUTAR ETL (con tee para ver en pantalla Y guardar en log)
 # -------------------------------------------------------------
-# La aplicación principal de Python a ejecutar
-MAIN_APP="main_etl.py"
+echo "🚀 Ejecutando proceso ETL..."
 
-echo "Iniciando spark-submit para $MAIN_APP..."
+python3 main_etl.py 2>&1 | tee -a "$LOG_FILE"
 
-# Ejecutar el proceso PySpark
-# --conf spark.pyspark.python: Apunta al binario de Python dentro del VENV.
-# --driver-class-path: Incluye el driver JDBC.
-# --py-files: Distribuye los módulos a los workers
-/opt/spark/bin/spark-submit \
-    --master local[*] \
-    --driver-class-path "$PROJECT_DIR/drivers/postgresql-42.7.8.jar" \
-    --conf spark.pyspark.python="$PROJECT_DIR/.venv/bin/python" \
-    --py-files "$PROJECT_DIR/modules.zip" \
-    "$PROJECT_DIR/$MAIN_APP"
-
-# Capturar el código de salida de spark-submit
-EXIT_CODE=$?
+EXIT_CODE=${PIPESTATUS[0]}
 
 # -------------------------------------------------------------
-# 4. DESACTIVACIÓN Y LIMPIEZA
+# 5. FINALIZACIÓN
 # -------------------------------------------------------------
 deactivate
-echo "Proceso ETL finalizado con código de salida: $EXIT_CODE"
 
-# El script saldrá con el código de spark-submit (0 para éxito, >0 para error)
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "✅ Proceso ETL finalizado exitosamente" | tee -a "$LOG_FILE"
+else
+    echo "❌ Proceso ETL finalizado con errores (código: $EXIT_CODE)" | tee -a "$LOG_FILE"
+fi
+
+echo "🕐 Finalizado: $(date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_FILE"
+echo "==================================================" | tee -a "$LOG_FILE"
+echo "" | tee -a "$LOG_FILE"
+
 exit $EXIT_CODE
