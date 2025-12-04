@@ -37,7 +37,7 @@ def get_max_timestamp_from_target(spark):
     except Exception as e:
         # Si la tabla aún no existe (primera ejecución), retornamos None
         if "relation" in str(e).lower() and "does not exist" in str(e).lower():
-            print("INFO: La tabla destino no existe. Se realizará una carga inicial completa.")
+            print("ℹ️ INFO: La tabla destino no existe. Se realizará una carga inicial completa.")
             return None
         else:
             # En caso de otro error, propagar
@@ -60,4 +60,4 @@ def load_data(spark_df):
         mode="append", # O "overwrite" si se desea reemplazar toda la tabla
         properties=connection_properties,
     )
-    print(f"🎉 ÉXITO: {spark_df.count()} registros cargados a Render en la tabla '{TARGET_TABLE}'.")
+    print(f"✅ ÉXITO: {spark_df.count()} registros cargados a PostgreSQL en la tabla '{TARGET_TABLE}'.")

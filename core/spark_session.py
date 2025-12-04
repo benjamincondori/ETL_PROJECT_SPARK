@@ -12,8 +12,8 @@ def create_spark_session():
         
         # Configuración de estabilidad y JDBC
         .config("spark.sql.execution.arrow.pyspark.enabled", "false")
-        # .config("spark.jars", JDBC_DRIVER_PATH)
-        # .config("spark.driver.extraClassPath", JDBC_DRIVER_PATH)
+        .config("spark.jars", JDBC_DRIVER_PATH)
+        .config("spark.driver.extraClassPath", JDBC_DRIVER_PATH)
         
         .getOrCreate()
     )

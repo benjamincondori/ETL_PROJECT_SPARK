@@ -23,42 +23,47 @@ def run_full_etl():
     """Ejecuta el flujo completo de ETL: Extract -> Transform -> Load."""
     spark = None
     try:
-        logger.info("Iniciando proceso ETL (Incremental)...")
+        logger.info("🚀 Iniciando proceso ETL (Incremental)...")
         
         # 1. Crear sesión de Spark
+        logger.info("🔥 Inicializando sesión de Spark...")
         spark = create_spark_session()
-        logger.info("Sesión de Spark inicializada.")
+        logger.info("🔥 Sesión de Spark inicializada.")
         
         # 2. PREPARACIÓN: Obtener la marca de tiempo de la última ejecución
+        logger.info("⏱️ Obteniendo última marca de tiempo...")
         last_ts = get_max_timestamp_from_target(spark)
-        logger.info(f"Última marca de tiempo cargada en destino: {last_ts}")
+        logger.info(f"📌 Última marca de tiempo cargada en destino: {last_ts}")
         
         # 3. Extract: Leer de la DB Origen con filtro incremental
-        # df_raw = extract_data(spark, last_ts)
+        logger.info("📥 Extrayendo datos desde Supabase...")
         df_raw = extract_data(spark, last_ts, origin="supabase")
-        logger.info(f"Extracción completa. Filas nuevas leídas: {df_raw.count()}")
+        records_extracted = df_raw.count()
+        logger.info(f"📥 Extracción completa: {records_extracted} registros nuevos.")
         
         # Validación: Si no hay filas nuevas, detener el proceso
-        if df_raw.count() == 0:
-            logger.info("No se encontraron nuevos registros. Proceso finalizado.")
+        if records_extracted == 0:
+            logger.info("⚠️ No existen registros nuevos. Proceso ETL finalizado.")
             return
         
         # 3. Transform: Aplicar lógica de negocio
+        logger.info("🔄 Iniciando transformación de datos...")
         df_transformed = transform_data(df_raw, spark)
-        logger.info(f"Transformación completa. Registros listos para cargar: {df_transformed.count()}")
+        logger.info(f"🔄 Transformación completada: {df_transformed.count()} registros listos para cargar.")
         
-        # 4. Load: Escribir en Render
+        # 4. Load: Escribir en PostgreSQL
+        logger.info("📤 Cargando datos en PostgreSQL...")
         load_data(df_transformed)
-        logger.info("Carga de datos a Render completada exitosamente.")
+        logger.info("✅ ÉXITO: Datos cargados correctamente en PostgreSQL.")
 
     except Exception as e:
-        logger.error(f"Error crítico en el proceso ETL: {e}", exc_info=True)
+        logger.error(f"❌ Error crítico en el proceso ETL: {e}", exc_info=True)
         sys.exit(1) 
 
     finally:
         if spark:
             spark.stop()
-            logger.info("Sesión de Spark finalizada.")
+            logger.info("🏁 Sesión de Spark finalizada. ETL completado.")
 
 if __name__ == "__main__":
     run_full_etl()

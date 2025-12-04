@@ -4,27 +4,21 @@ from shapely.geometry import Point, shape
 from pyspark.sql.functions import udf, col, lit
 from pyspark.sql.types import StringType
 
-# from core.config import (
-#     ALTITUD_BAJA_MAX, ALTITUD_MEDIA_MAX, COBERTURA_MEDIA_MIN_DBM, 
-#     COBERTURA_ALTA_MIN_DBM, GEOJSON_FILE_PATH
-# )
-
-
 # -------------------------------------------------------------
 # CARGAR GEOJSON DE ZONAS (SHAPELY EN DRIVER)
 # -------------------------------------------------------------
 def cargar_zonas_desde_geojson(geojson_path):
     if not os.path.exists(geojson_path):
-        print(f"Advertencia: No se encontró el GEOJSON en: {geojson_path}. Devolviendo lista vacía.")
+        print(f"⚠️ Advertencia: No se encontró el GEOJSON en: {geojson_path}. Devolviendo lista vacía.")
         return []
 
-    print(f"Cargando polígonos desde GEOJSON: {geojson_path} ...")
+    print(f"⚙️ Cargando polígonos desde GEOJSON: {geojson_path} ...")
 
     try:
         with open(geojson_path, "r", encoding="utf-8") as f:
             data = json.load(f)
     except Exception as e:
-        print(f"Error al cargar GEOJSON: {e}")
+        print(f"❌ Error al cargar GEOJSON: {e}")
         return []
 
     zonas = []
@@ -37,7 +31,7 @@ def cargar_zonas_desde_geojson(geojson_path):
             "geometry": geom
         })
 
-    print(f"✓ Zonas cargadas: {len(zonas)}")
+    print(f"✅ Zonas cargadas: {len(zonas)}")
     return zonas
 
 
@@ -120,10 +114,6 @@ def transform_data(df_spark, spark_session):
         discretizar_cobertura_spark(col("signal"))
     )
     
-    # df_transformado = df_spark.withColumn("zona", asignar_zona_spark(col("latitude"), col("longitude")))
-    # df_transformado = df_transformado.withColumn("altitud_categoria", discretizar_altitud_spark(col("altitude")))
-    # df_transformado = df_transformado.withColumn("cobertura_categoria", discretizar_cobertura_spark(col("signal")))
-
     # 4. Seleccionar y renombrar
     columnas_finales = [
         "id", "latitude", "longitude", "zona", "altitude", 

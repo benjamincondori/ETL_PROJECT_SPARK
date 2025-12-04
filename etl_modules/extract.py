@@ -52,11 +52,11 @@ def extract_data_postgres(spark: SparkSession, last_run_timestamp=None):
         
         # Añadir filtro incremental: solo registros MÁS NUEVOS que la última carga
         query = f"({sql_base} WHERE timestamp > '{ts_str}') AS data_alias"
-        print(f"-> Aplicando filtro incremental: WHERE timestamp > '{ts_str}'")
+        print(f"➡️ Aplicando filtro incremental: WHERE timestamp > '{ts_str}'")
     else:
         # Primera ejecución o tabla destino vacía: Carga Full (sin filtro)
         query = f"({sql_base}) AS data_alias"
-        print("-> Carga inicial: Extrayendo todos los registros.")
+        print("➡️ Carga inicial: Extrayendo todos los registros.")
 
     df_spark = (
         spark.read.format("jdbc")
@@ -80,7 +80,7 @@ def extract_data_supabase(spark: SparkSession, last_run_timestamp=None, table_na
     # Filtro incremental
     if last_run_timestamp:
         ts_str = last_run_timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')
-        print(f"-> [Supabase] Filtro incremental: timestamp > '{ts_str}'")
+        print(f"➡️ [Supabase] Filtro incremental: timestamp > '{ts_str}'")
 
         response = (
             supabase.table(table_name)
@@ -89,23 +89,26 @@ def extract_data_supabase(spark: SparkSession, last_run_timestamp=None, table_na
             .execute()
         )
     else:
-        print("-> [Supabase] Carga inicial completa.")
+        print("➡️ [Supabase] Carga inicial completa.")
         response = supabase.table(table_name).select("*").execute()
 
     data = response.data
 
     if not data:
-        print("⚠ [Supabase] No se encontraron registros.")
+        print("⚠️ [Supabase] No se encontraron registros.")
         # DF vacío con esquema correcto
         return spark.createDataFrame([], schema=DB_SCHEMA)
 
     # Supabase → pandas
     pdf = pd.DataFrame(data)
+    
+    # Asegurar que la columna timestamp es del tipo datetime
+    pdf['timestamp'] = pd.to_datetime(pdf['timestamp'])
 
     # pandas → Spark con esquema consistente
     df_spark = spark.createDataFrame(pdf, schema=DB_SCHEMA)
 
-    print(f"✔ [Supabase] Filas extraídas: {df_spark.count()}")
+    print(f"✅ [Supabase] Filas extraídas: {df_spark.count()}")
     return df_spark
 
 
