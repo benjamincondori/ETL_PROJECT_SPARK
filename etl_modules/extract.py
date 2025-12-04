@@ -174,13 +174,96 @@ def extract_data_supabase_paginated(spark: SparkSession, last_run_timestamp=None
     pdf = pd.DataFrame(all_data)
     
     # Asegurar que la columna timestamp es del tipo datetime (tu arreglo anterior)
-    pdf['timestamp'] = pd.to_datetime(pdf['timestamp'])
+    pdf['timestamp'] = pd.to_datetime(pdf['timestamp'], format='ISO8601')
 
     # pandas → Spark con esquema consistente
     df_spark = spark.createDataFrame(pdf, schema=DB_SCHEMA)
 
     print(f"✅ [Supabase] Extracción paginada completada. Filas totales: {df_spark.count()}")
     return df_spark
+
+
+def extract_data_supabase_incremental(spark, last_run_timestamp=None, table_name="locations", page_size=5000):
+    """
+    Extrae datos desde Supabase en forma paginada usando timestamp incremental.
+    No usa offset (evita límites de PostgREST).
+    """
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    # Punto de inicio: última fecha cargada
+    if last_run_timestamp:
+        last_ts = last_run_timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f')
+        print(f"➡️ [Supabase] Extracción incremental desde timestamp > {last_ts}")
+    else:
+        last_ts = None
+        print("➡️ [Supabase] Extracción completa (FULL LOAD).")
+
+    all_rows = []
+    total_count = 0
+    page_number = 1
+
+    while True:
+        print(f"  🔎 Solicitando página #{page_number}...")
+
+        if last_ts:
+            query = (
+                supabase.table(table_name)
+                .select("*")
+                .gt("timestamp", last_ts)
+                .order("timestamp", desc=False)
+                .limit(page_size)
+            )
+        else:
+            query = (
+                supabase.table(table_name)
+                .select("*")
+                .order("timestamp", desc=False)
+                .limit(page_size)
+            )
+
+        response = query.execute()
+        data = response.data
+
+        # No más registros → terminamos
+        if not data:
+            print("  🛑 No hay más registros para obtener.")
+            break
+
+        # Append batch
+        all_rows.extend(data)
+        total_count += len(data)
+
+        print(f"  ➡️ Página cargada. Total acumulado: {total_count}")
+
+        # Actualiza last_ts al mayor timestamp del lote actual
+        try:
+            # pandas para encontrar max timestamp
+            pdf = pd.DataFrame(data)
+            pdf["timestamp"] = pd.to_datetime(pdf["timestamp"], format="ISO8601")
+            last_ts = pdf["timestamp"].max().isoformat()
+        except Exception as e:
+            print(f"⚠️ Error al normalizar timestamp: {e}")
+            pass
+
+        page_number += 1
+
+        # Si la página tiene menos del máximo → no hay más páginas
+        if len(data) < page_size:
+            print("  🛑 Última página recibida (menos del límite).")
+            break
+
+    print(f"✅ [Supabase] Extracción paginada completada. Filas totales: {total_count}")
+
+    if total_count == 0:
+        return spark.createDataFrame([], schema=DB_SCHEMA)
+
+    # Convert all results → Spark DF
+    pdf_full = pd.DataFrame(all_rows)
+    pdf_full["timestamp"] = pd.to_datetime(pdf_full["timestamp"], format="ISO8601")
+
+    df_spark = spark.createDataFrame(pdf_full, schema=DB_SCHEMA)
+    return df_spark
+
 
 
 # ============================================================
@@ -192,7 +275,8 @@ def extract_data(spark: SparkSession, last_run_timestamp=None, origin="supabase"
     origin="postgres" -> leer desde Postgres (origen anterior)
     """
     if origin == "supabase":
-        return extract_data_supabase_paginated(spark, last_run_timestamp)
+        # return extract_data_supabase_paginated(spark, last_run_timestamp)
+        return extract_data_supabase_incremental(spark, last_run_timestamp)
     elif origin == "postgres":
         return extract_data_postgres(spark, last_run_timestamp)
     else:

@@ -53,7 +53,7 @@ def asignar_zona_func(lat, lon, zonas_broadcast):
     for z in zonas:
         if z["geometry"].contains(punto):
             return z["name"]
-    return "FUERA_ZONA"
+    return "Fuera_de_zona"
 
 
 def discretizar_altitud_func(altitud):
@@ -61,7 +61,7 @@ def discretizar_altitud_func(altitud):
     from core.config import ALTITUD_BAJA_MAX, ALTITUD_MEDIA_MAX
     
     if altitud is None:
-        return "Desconocida"
+        return "Baja"
     if altitud <= ALTITUD_BAJA_MAX: 
         return "Baja"
     elif altitud <= ALTITUD_MEDIA_MAX: 
@@ -75,7 +75,7 @@ def discretizar_cobertura_func(signal):
     from core.config import COBERTURA_MEDIA_MIN_DBM, COBERTURA_ALTA_MIN_DBM
     
     if signal is None:
-        return "Desconocida"
+        return "Baja"
     if signal >= COBERTURA_ALTA_MIN_DBM: 
         return "Alta"
     elif signal >= COBERTURA_MEDIA_MIN_DBM: 
@@ -89,7 +89,7 @@ def discretizar_velocidad_func(velocidad):
     from core.config import VELOCIDAD_LENTA_MAX, VELOCIDAD_NORMAL_MAX
     
     if velocidad is None:
-        return "Desconocida"
+        return "Detenido"
     
     if velocidad == 0:
         return "Detenido"
@@ -106,10 +106,7 @@ def discretizar_bateria_func(bateria):
     from core.config import BATERIA_CRITICA_MAX, BATERIA_BAJA_MAX, BATERIA_MEDIA_MAX
     
     if bateria is None:
-        return "Desconocida"
-    
-    if bateria < 0 or bateria > 100:
-        return "Fuera de Rango"
+        return "Baja"
     
     if bateria <= BATERIA_CRITICA_MAX: # 0-10%
         return "Crítica"
@@ -126,7 +123,7 @@ def discretizar_compania_func(operator):
     Normaliza y clasifica el operador en ENTEL, TIGO, VIVA, OTRO o SIN_SEÑAL.
     """
     if operator is None:
-        return "Desconocida"
+        return "OTRO"
 
     op = operator.strip().upper()
 
