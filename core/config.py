@@ -54,7 +54,24 @@ JDBC_DRIVER_PATH = os.path.join(BASE_DIR, "drivers", "postgresql-42.7.8.jar")
 # -------------------------
 # Constantes de transformación
 # -------------------------
-ALTITUD_BAJA_MAX = 400
-ALTITUD_MEDIA_MAX = 800
-COBERTURA_MEDIA_MIN_DBM = -95
-COBERTURA_ALTA_MIN_DBM = -75
+
+# Valores típicos de altitud en metros
+ALTITUD_BAJA_MAX = 400 # Altitud <= 400m
+ALTITUD_MEDIA_MAX = 800 # Altitud entre 401m y 800m
+# > 800m se considera Alta
+
+# Valores típicos de señal en dBm
+COBERTURA_MEDIA_MIN_DBM = -95 # -95 dBm
+COBERTURA_ALTA_MIN_DBM = -75 # -75 dBm
+# > -75 dBm se considera Alta
+
+# Valores típicos de porcentaje (0-100)
+BATERIA_CRITICA_MAX = 10  # 0% - 10%
+BATERIA_BAJA_MAX = 30 # 11% - 30%   
+BATERIA_MEDIA_MAX = 70 # 31% - 70% 
+# 71% - 100% no necesita constante (es el resto)
+
+# Valores de velocidad en KPH
+VELOCIDAD_LENTA_MAX = 20 # Velocidad <= 20 KPH (Caminando/Parado)
+VELOCIDAD_NORMAL_MAX = 60 # Velocidad entre 20 y 60 KPH (Ciudad/Bicicleta)
+# > 60 KPH se considera Rápida

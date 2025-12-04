@@ -40,6 +40,7 @@ def cargar_zonas_desde_geojson(geojson_path):
 # -------------------------------------------------------------
 
 def asignar_zona_func(lat, lon, zonas_broadcast):
+    """Asigna una zona basada en latitud y longitud usando geometrías cargadas."""
     zonas = zonas_broadcast.value 
     if lat is None or lon is None:
         return "Desconocida"
@@ -54,7 +55,9 @@ def asignar_zona_func(lat, lon, zonas_broadcast):
             return z["name"]
     return "FUERA_ZONA"
 
+
 def discretizar_altitud_func(altitud):
+    """Clasifica la altitud en Baja, Media o Alta."""
     from core.config import ALTITUD_BAJA_MAX, ALTITUD_MEDIA_MAX
     
     if altitud is None:
@@ -68,6 +71,7 @@ def discretizar_altitud_func(altitud):
 
 
 def discretizar_cobertura_func(signal):
+    """Clasifica la señal en Alta, Media o Baja."""
     from core.config import COBERTURA_MEDIA_MIN_DBM, COBERTURA_ALTA_MIN_DBM
     
     if signal is None:
@@ -78,9 +82,48 @@ def discretizar_cobertura_func(signal):
         return "Media"
     else:
         return "Baja"
+    
+    
+def discretizar_velocidad_func(velocidad):
+    """Clasifica la velocidad en Detenido, Lento, Normal o Rápido."""
+    from core.config import VELOCIDAD_LENTA_MAX, VELOCIDAD_NORMAL_MAX
+    
+    if velocidad is None:
+        return "Desconocida"
+    
+    if velocidad == 0:
+        return "Detenido"
+    elif velocidad <= VELOCIDAD_LENTA_MAX: # 0 y <= 20
+        return "Lento"
+    elif velocidad <= VELOCIDAD_NORMAL_MAX: # > 20 y <= 60
+        return "Normal"
+    else:
+        return "Rápido" # > 60
+    
+
+def discretizar_bateria_func(bateria):
+    """Clasifica el nivel de batería en Crítica, Baja, Media o Alta"""
+    from core.config import BATERIA_CRITICA_MAX, BATERIA_BAJA_MAX, BATERIA_MEDIA_MAX
+    
+    if bateria is None:
+        return "Desconocida"
+    
+    if bateria < 0 or bateria > 100:
+        return "Fuera de Rango"
+    
+    if bateria <= BATERIA_CRITICA_MAX: # 0-10%
+        return "Crítica"
+    elif bateria <= BATERIA_BAJA_MAX: # 11-30%
+        return "Baja"
+    elif bateria <= BATERIA_MEDIA_MAX: # 31-70%
+        return "Media"
+    else: # 71-100%
+        return "Alta"
 
 discretizar_altitud_spark = udf(discretizar_altitud_func, StringType())
 discretizar_cobertura_spark = udf(discretizar_cobertura_func, StringType())
+discretizar_velocidad_spark = udf(discretizar_velocidad_func, StringType())
+discretizar_bateria_spark = udf(discretizar_bateria_func, StringType())
 
 
 # -------------------------------------------------------------
@@ -112,16 +155,52 @@ def transform_data(df_spark, spark_session):
     ).withColumn(
         "cobertura_categoria",
         discretizar_cobertura_spark(col("signal"))
+    ).withColumn(
+        "velocidad_categoria",
+        discretizar_velocidad_spark(col("speed"))
+    ).withColumn(
+        "bateria_categoria",
+        discretizar_bateria_spark(col("battery"))
     )
     
     # 4. Seleccionar y renombrar
     columnas_finales = [
-        "id", "latitude", "longitude", "zona", "altitude", 
-        "altitud_categoria", "signal", "cobertura_categoria", col("timestamp").alias("fecha_hora")
+        # IDs
+        "id", 
+        
+        # Coordenadas y Zona
+        col("latitude").alias("latitud"),
+        col("longitude").alias("longitud"),
+        "zona", 
+        
+        # Datos de Altitud
+        col("altitude").alias("altitud"),
+        "altitud_categoria", 
+        
+        # Datos de Señal/Cobertura
+        col("signal").alias("cobertura"),
+        "cobertura_categoria", 
+        
+        # Datos de Velocidad y Batería
+        col("speed").alias("velocidad"),
+        "velocidad_categoria", 
+        col("battery").alias("bateria"),
+        "bateria_categoria",
+        
+        # Datos del Operador
+        col("sim_operator").alias("compania"),
+        
+        # Marca de Tiempo
+        col("timestamp").alias("fecha_hora")
     ]
     
     df_final = df_transformado.select(*columnas_finales).fillna({
-        "zona": "Desconocida", "altitud_categoria": "Desconocida", "cobertura_categoria": "Desconocida"
+        "zona": "Desconocida", 
+        "altitud_categoria": "Desconocida", 
+        "cobertura_categoria": "Desconocida",
+        "velocidad_categoria": "Desconocida",
+        "bateria_categoria": "Desconocida",
+        "compania": "Desconocida"
     })
     
     return df_final
