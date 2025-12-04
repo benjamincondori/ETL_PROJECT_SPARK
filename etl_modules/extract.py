@@ -111,6 +111,77 @@ def extract_data_supabase(spark: SparkSession, last_run_timestamp=None, table_na
     print(f"✅ [Supabase] Filas extraídas: {df_spark.count()}")
     return df_spark
 
+# ============================================================
+#   2) EXTRACCIÓN DESDE SUPABASE (API REST) - CON PAGINACIÓN
+# ============================================================
+def extract_data_supabase_paginated(spark: SparkSession, last_run_timestamp=None, table_name="locations"):
+    """Extrae datos desde Supabase usando la API (URL + KEY) con paginación."""
+
+    # Tamaño del bloque de datos por llamada. Supabase (PostgREST) tiene un límite por defecto.
+    PAGE_SIZE = 5000 
+    
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    
+    all_data = []  # Lista para almacenar todos los registros de todas las páginas
+    offset = 0     # Posición inicial para el desplazamiento
+    
+    print("➡️ [Supabase] Iniciando extracción paginada...")
+
+    # Configuración del filtro incremental (si existe)
+    if last_run_timestamp:
+        ts_str = last_run_timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')
+        print(f"➡️ [Supabase] Aplicando filtro incremental: timestamp > '{ts_str}'")
+        base_query = supabase.table(table_name).select("*").gt("timestamp", ts_str)
+    else:
+        print("➡️ [Supabase] Carga inicial completa (FULL LOAD).")
+        base_query = supabase.table(table_name).select("*")
+        
+    # --- Bucle de Paginación ---
+    while True:
+        # Añadir LIMIT y OFFSET a la consulta base
+        response = (
+            base_query
+            .limit(PAGE_SIZE)
+            .offset(offset)
+            .execute()
+        )
+        
+        page_data = response.data
+        
+        if not page_data:
+            # Si no hay datos en esta página, hemos llegado al final.
+            break
+        
+        # Almacenar los datos de esta página y avanzar el desplazamiento
+        all_data.extend(page_data)
+        
+        print(f"  ➡️ Página cargada. Total de registros hasta ahora: {len(all_data)}")
+        
+        # Preparar el OFFSET para la siguiente página
+        offset += PAGE_SIZE
+        
+        # Opcional: Si el número de registros en la página es menor que el límite, también es el final.
+        # Esto puede evitar una llamada API innecesaria, aunque el 'if not page_data' ya lo maneja.
+        if len(page_data) < PAGE_SIZE:
+             break
+
+    # --- Conversión Final ---
+    if not all_data:
+        print("⚠️ [Supabase] No se encontraron registros en ninguna página.")
+        return spark.createDataFrame([], schema=DB_SCHEMA)
+
+    # Supabase (JSON) → pandas
+    pdf = pd.DataFrame(all_data)
+    
+    # Asegurar que la columna timestamp es del tipo datetime (tu arreglo anterior)
+    pdf['timestamp'] = pd.to_datetime(pdf['timestamp'])
+
+    # pandas → Spark con esquema consistente
+    df_spark = spark.createDataFrame(pdf, schema=DB_SCHEMA)
+
+    print(f"✅ [Supabase] Extracción paginada completada. Filas totales: {df_spark.count()}")
+    return df_spark
+
 
 # ============================================================
 #   3) FUNCIÓN PRINCIPAL QUE USA TU ETL
@@ -121,7 +192,7 @@ def extract_data(spark: SparkSession, last_run_timestamp=None, origin="supabase"
     origin="postgres" -> leer desde Postgres (origen anterior)
     """
     if origin == "supabase":
-        return extract_data_supabase(spark, last_run_timestamp)
+        return extract_data_supabase_paginated(spark, last_run_timestamp)
     elif origin == "postgres":
         return extract_data_postgres(spark, last_run_timestamp)
     else:
