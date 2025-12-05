@@ -55,6 +55,7 @@ else
     echo "❌ Proceso ETL finalizado con errores (código: $EXIT_CODE)" | tee -a "$LOG_FILE"
 fi
 
+echo "==================================================" | tee -a "$LOG_FILE"
 echo "🕐 Finalizado: $(TZ='America/La_Paz' date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_FILE"
 echo "==================================================" | tee -a "$LOG_FILE"
 echo "" | tee -a "$LOG_FILE"
