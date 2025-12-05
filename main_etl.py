@@ -1,6 +1,7 @@
 import sys
 import os
 import logging
+import time
 
 # Añadir la ruta del proyecto para importar módulos (necesario en algunos entornos)
 # sys.path.append(os.getcwd())
@@ -13,6 +14,10 @@ from core.spark_session import create_spark_session
 from etl_modules.extract import extract_data
 from etl_modules.transform import transform_data
 from etl_modules.load import load_data, get_max_timestamp_from_target
+
+# Forzar logs a usar tu hora local
+os.environ["TZ"] = "America/La_Paz"
+time.tzset()
 
 # Configurar logging (opcional, pero buena práctica)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

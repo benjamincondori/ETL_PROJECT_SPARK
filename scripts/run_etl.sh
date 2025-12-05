@@ -11,7 +11,7 @@ LOG_FILE="/home/benjamin/etl_log.txt"
 
 # Timestamp de inicio
 echo "=================================================="
-echo "🕐 ETL iniciado: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "🕐 ETL iniciado: $(TZ='America/La_Paz' date '+%Y-%m-%d %H:%M:%S')"
 echo "=================================================="
 
 # -------------------------------------------------------------
@@ -55,7 +55,7 @@ else
     echo "❌ Proceso ETL finalizado con errores (código: $EXIT_CODE)" | tee -a "$LOG_FILE"
 fi
 
-echo "🕐 Finalizado: $(date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_FILE"
+echo "🕐 Finalizado: $(TZ='America/La_Paz' date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_FILE"
 echo "==================================================" | tee -a "$LOG_FILE"
 echo "" | tee -a "$LOG_FILE"
 
