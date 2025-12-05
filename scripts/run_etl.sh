@@ -10,9 +10,9 @@ PROJECT_DIR="/home/benjamin/ETL_PROJECT_SPARK"
 LOG_FILE="/home/benjamin/etl_log.txt"
 
 # Timestamp de inicio
-echo "=================================================="
-echo "🕐 ETL iniciado: $(TZ='America/La_Paz' date '+%Y-%m-%d %H:%M:%S')"
-echo "=================================================="
+echo "==================================================" | tee -a "$LOG_FILE"
+echo "🕐 ETL iniciado: $(TZ='America/La_Paz' date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_FILE"
+echo "==================================================" | tee -a "$LOG_FILE"
 
 # -------------------------------------------------------------
 # 2. ACTIVAR ENTORNO VIRTUAL
@@ -20,18 +20,18 @@ echo "=================================================="
 VENV_ACTIVATE_SCRIPT="$PROJECT_DIR/.venv/bin/activate"
 
 if [ ! -f "$VENV_ACTIVATE_SCRIPT" ]; then
-    echo "❌ ERROR: Entorno virtual no encontrado en $VENV_ACTIVATE_SCRIPT"
+    echo "❌ ERROR: Entorno virtual no encontrado en $VENV_ACTIVATE_SCRIPT" | tee -a "$LOG_FILE"
     exit 1
 fi
 
 source "$VENV_ACTIVATE_SCRIPT"
-echo "✅ Entorno virtual activado"
+echo "✅ Entorno virtual activado" | tee -a "$LOG_FILE"
 
 # -------------------------------------------------------------
 # 3. CAMBIAR AL DIRECTORIO DEL PROYECTO
 # -------------------------------------------------------------
 cd "$PROJECT_DIR" || {
-    echo "❌ ERROR: No se pudo acceder al directorio $PROJECT_DIR"
+    echo "❌ ERROR: No se pudo acceder al directorio $PROJECT_DIR" | tee -a "$LOG_FILE"
     exit 1
 }
 
